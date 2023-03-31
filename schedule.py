@@ -319,10 +319,7 @@ def _convert_to_event_for_teacher(
 def _to_datetime(year: int, week: int, day: int, time_of_day: str) -> datetime:
     class_date = datetime.fromisocalendar(year, week, day)
     time_notz = time.fromisoformat(time_of_day)
-    class_time = time(
-        time_notz.hour,
-        time_notz.minute,
-        time_notz.second,
-        tzinfo=pytz.timezone("Europe/Stockholm"),
-    )
-    return datetime.combine(class_date, class_time)
+    class_time = time(time_notz.hour, time_notz.minute, time_notz.second)
+    dt = datetime.combine(class_date, class_time)
+    tz = pytz.timezone("Europe/Stockholm")
+    return tz.localize(dt)
