@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, time
+from time import sleep
+from typing import Callable
 
 import json
 import pytz
@@ -25,32 +27,47 @@ def get_timetable_for_teacher(
     start_week: int,
     end_week: int,
 ) -> list:
-    session = requests.Session()
-    session.headers.update(
-        {
-            "X-Scope": "8a22163c-8662-4535-9050-bc5e1923df48",
-            "X-Requested-With": "XMLHttpRequest",
-            "Content-Type": "application/json",
-        }
+    return _get_timetable_for(
+        _get_teacher_by_id,
+        _get_timetable_for_teacher,
+        _convert_to_event_for_teacher,
+        unit_name,
+        unit_host,
+        teacher_id,
+        year,
+        start_week,
+        end_week,
     )
-
-    unit = _get_unit_by_name(session, unit_name, unit_host)
-    teacher = _get_teacher_by_id(session, unit, teacher_id)
-
-    all_weeks = []
-    for week in range(start_week, end_week + 1):
-        render_key = _get_render_key(session)
-        all_weeks.extend(
-            _get_timetable_for_teacher(session, unit, teacher, render_key, year, week)
-        )
-
-    return _convert_to_event_for_teacher(all_weeks, teacher_id, year, week)
 
 
 def get_timetable_for_group(
     unit_name: str,
     unit_host: str,
     group_id: str,
+    year: int,
+    start_week: int,
+    end_week: int,
+) -> list:
+    return _get_timetable_for(
+        _get_class_by_id,
+        _get_timetable_for_class,
+        _convert_to_event_for_class,
+        unit_name,
+        unit_host,
+        group_id,
+        year,
+        start_week,
+        end_week,
+    )
+
+
+def _get_timetable_for(
+    get_guid: Callable[[requests.Session, dict, str], dict],
+    get_timetable: Callable[[requests.Session, dict, dict, str, int, int], list],
+    convert_timetable: Callable[[list, str, int, int], list],
+    unit_name: str,
+    unit_host: str,
+    id: str,
     year: int,
     start_week: int,
     end_week: int,
@@ -65,16 +82,14 @@ def get_timetable_for_group(
     )
 
     unit = _get_unit_by_name(session, unit_name, unit_host)
-    group = _get_class_by_id(session, unit, group_id)
+    guid = get_guid(session, unit, id)
 
     all_weeks = []
     for week in range(start_week, end_week + 1):
         render_key = _get_render_key(session)
-        all_weeks.extend(
-            _get_timetable_for_class(session, unit, group, render_key, year, week)
-        )
+        all_weeks.extend(get_timetable(session, unit, guid, render_key, year, week))
 
-    return _convert_to_event_for_class(all_weeks, group_id, year, week)
+    return convert_timetable(all_weeks, id, year, week)
 
 
 def _get_unit_by_name(session: requests.Session, name: str, host: str) -> dict:
