@@ -17,7 +17,14 @@ class TimetableEvent:
     time_end: datetime
 
 
-def get_timetable_for_teacher(unit_name: str, unit_host: str, teacher_id: str, year: int, start_week: int, end_week: int) -> list:
+def get_timetable_for_teacher(
+    unit_name: str,
+    unit_host: str,
+    teacher_id: str,
+    year: int,
+    start_week: int,
+    end_week: int,
+) -> list:
     session = requests.Session()
     session.headers.update(
         {
@@ -33,14 +40,21 @@ def get_timetable_for_teacher(unit_name: str, unit_host: str, teacher_id: str, y
     all_weeks = []
     for week in range(start_week, end_week + 1):
         render_key = _get_render_key(session)
-        all_weeks.extend(_get_timetable_for_teacher(
-            session, unit, teacher, render_key, year, week
-        ))
-        
+        all_weeks.extend(
+            _get_timetable_for_teacher(session, unit, teacher, render_key, year, week)
+        )
+
     return _convert_to_event_for_teacher(all_weeks, teacher_id, year, week)
 
 
-def get_timetable_for_group(unit_name: str, unit_host: str, group_id: str, year: int, start_week: int, end_week: int) -> list:
+def get_timetable_for_group(
+    unit_name: str,
+    unit_host: str,
+    group_id: str,
+    year: int,
+    start_week: int,
+    end_week: int,
+) -> list:
     session = requests.Session()
     session.headers.update(
         {
@@ -54,9 +68,11 @@ def get_timetable_for_group(unit_name: str, unit_host: str, group_id: str, year:
     group = _get_class_by_id(session, unit, group_id)
 
     all_weeks = []
-    for week in range(start_week, end_week + 1):    
+    for week in range(start_week, end_week + 1):
         render_key = _get_render_key(session)
-        all_weeks.extend(_get_timetable_for_class(session, unit, group, render_key, year, week))
+        all_weeks.extend(
+            _get_timetable_for_class(session, unit, group, render_key, year, week)
+        )
 
     return _convert_to_event_for_class(all_weeks, group_id, year, week)
 

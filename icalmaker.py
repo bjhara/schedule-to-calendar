@@ -1,6 +1,7 @@
 from datetime import datetime
 from icalendar import Calendar, Event, vText  # type: ignore
 
+
 def timetable_to_ical(timetables: list) -> Calendar:
     cal = Calendar()
 
