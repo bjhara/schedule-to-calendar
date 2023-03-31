@@ -3,11 +3,12 @@ from datetime import datetime
 import argparse
 import icalmaker
 import schedule
+import sys
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="scheduletocalendar",
+        prog="schedule-to-calendar",
         description="Make a schedule from Skola24 into a ical file",
     )
 
@@ -54,17 +55,17 @@ def main():
     if args.group == None and args.teacher == None:
         print("error: You must supply either a teacher id or a class id.\n")
         arg_parser.print_usage()
-        exit(-1)
+        sys.exit(-1)
 
     if args.group != None and args.teacher != None:
         print("error: You can't supply both a teacher id and a class id.\n")
         arg_parser.print_usage()
-        exit(-1)
+        sys.exit(-1)
 
     if not valid_arguments(args):
         print("error: Invalid arguments.\n")
         arg_parser.print_usage()
-        exit(-1)
+        sys.exit(-1)
 
     if args.group != None:
         timetable = schedule.get_timetable_for_group(
