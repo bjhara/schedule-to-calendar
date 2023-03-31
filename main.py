@@ -85,4 +85,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as err:
+        print(f"Something went wrong: {err}")
