@@ -86,10 +86,15 @@ def _get_timetable_for(
 
     all_weeks = []
     for week in range(start_week, end_week + 1):
-        render_key = _get_render_key(session)
-        all_weeks.extend(get_timetable(session, unit, guid, render_key, year, week))
+        # don't blast the server with requests
+        sleep(0.5)
 
-    return convert_timetable(all_weeks, id, year, week)
+        # the web interface seems to get a new render key every time
+        render_key = _get_render_key(session)
+        timetable = get_timetable(session, unit, guid, render_key, year, week)
+        all_weeks.extend(convert_timetable(timetable, id, year, week))
+
+    return all_weeks
 
 
 def _get_unit_by_name(session: requests.Session, name: str, host: str) -> dict:
