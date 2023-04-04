@@ -275,9 +275,7 @@ def _convert_to_event_for_class(
     classes = []
     for klass in timetable:
         texts = klass["texts"]
-        name = texts[0]
-        teacher = texts[1]
-        room = texts[2]
+        (name, teacher, room) = _get_texts(texts)
 
         id = klass["guidId"]
 
@@ -299,9 +297,7 @@ def _convert_to_event_for_teacher(
     classes = []
     for klass in timetable:
         texts = klass["texts"]
-        name = texts[0]
-        group = texts[1]
-        room = texts[2]
+        (name, group, room) = _get_texts(texts)
 
         id = klass["guidId"]
 
@@ -324,3 +320,18 @@ def _to_datetime(year: int, week: int, day: int, time_of_day: str) -> datetime:
     dt = datetime.combine(class_date, class_time)
     tz = pytz.timezone("Europe/Stockholm")
     return tz.localize(dt)
+
+
+def _get_texts(texts):
+    if texts == None:
+        return ("", "", "")
+
+    count = len(texts)
+    if count == 0:
+        return ("", "", "")
+    elif count == 1:
+        return (texts[0], "", "")
+    elif count == 2:
+        return (texts[0], texts[1], "")
+    else:
+        return (texts[0], texts[1], texts[2])
