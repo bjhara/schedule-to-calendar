@@ -92,7 +92,8 @@ def _get_timetable_for(
         # the web interface seems to get a new render key every time
         render_key = _get_render_key(session)
         timetable = get_timetable(session, unit, guid, render_key, year, week)
-        all_weeks.extend(convert_timetable(timetable, id, year, week))
+        if timetable != None:
+            all_weeks.extend(convert_timetable(timetable, id, year, week))
 
     return all_weeks
 
