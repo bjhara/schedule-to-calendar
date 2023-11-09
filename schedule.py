@@ -19,6 +19,13 @@ class TimetableEvent:
     time_end: datetime
 
 
+@dataclass
+class SchoolYear:
+    guid: str
+    time_start: datetime
+    time_end: datetime
+
+
 def get_timetable_for_teacher(
     unit_name: str,
     unit_host: str,
@@ -63,7 +70,9 @@ def get_timetable_for_group(
 
 def _get_timetable_for(
     get_guid: Callable[[requests.Session, dict, str], dict],
-    get_timetable: Callable[[requests.Session, dict, dict, str, int, int], list],
+    get_timetable: Callable[
+        [requests.Session, dict, dict, str, list[SchoolYear], int, int], list
+    ],
     convert_timetable: Callable[[list, str, int, int], list],
     unit_name: str,
     unit_host: str,
@@ -81,6 +90,7 @@ def _get_timetable_for(
         }
     )
 
+    school_years = _get_school_years(session, unit_host)
     unit = _get_unit_by_name(session, unit_name, unit_host)
     guid = get_guid(session, unit, id)
 
@@ -91,11 +101,37 @@ def _get_timetable_for(
 
         # the web interface seems to get a new render key every time
         render_key = _get_render_key(session)
-        timetable = get_timetable(session, unit, guid, render_key, year, week)
+
+        timetable = get_timetable(
+            session, unit, guid, render_key, school_years, year, week
+        )
         if timetable != None:
             all_weeks.extend(convert_timetable(timetable, id, year, week))
 
     return all_weeks
+
+
+def _get_school_years(session: requests.Session, host: str) -> list[SchoolYear]:
+    school_year_request_data = json.dumps(
+        {"hostName": host, "checkSchoolYearsFeatures": False}
+    )
+
+    resp = session.post(
+        "https://web.skola24.se/api/get/active/school/years",
+        data=school_year_request_data,
+    )
+
+    if resp.status_code != 200:
+        raise RuntimeError("could not get school year data")
+
+    school_year_response = resp.json()
+    active_school_years: list = school_year_response["data"]["activeSchoolYears"]
+    return [
+        SchoolYear(
+            year["guid"], _str_to_datetime(year["from"]), _str_to_datetime(year["to"])
+        )
+        for year in active_school_years
+    ]
 
 
 def _get_unit_by_name(session: requests.Session, name: str, host: str) -> dict:
@@ -214,11 +250,12 @@ def _get_timetable_for_teacher(
     unit: dict,
     teacher: dict,
     render_key: str,
+    school_years: list[SchoolYear],
     year: int,
     week: int,
 ) -> list:
     return _get_timetable(
-        session, unit, teacher["personGuid"], 7, render_key, year, week
+        session, unit, teacher["personGuid"], 7, render_key, school_years, year, week
     )
 
 
@@ -227,10 +264,13 @@ def _get_timetable_for_class(
     unit: dict,
     klass: dict,
     render_key: str,
+    school_years: list[SchoolYear],
     year: int,
     week: int,
 ) -> list:
-    return _get_timetable(session, unit, klass["groupGuid"], 0, render_key, year, week)
+    return _get_timetable(
+        session, unit, klass["groupGuid"], 0, render_key, school_years, year, week
+    )
 
 
 def _get_timetable(
@@ -239,9 +279,12 @@ def _get_timetable(
     guid: str,
     selectionType: int,
     render_key: str,
+    school_years: list[SchoolYear],
     year: int,
     week: int,
 ) -> list:
+    school_year = _get_school_year_guid(school_years, year, week)
+
     timetable_request_data = {
         "renderKey": render_key,
         "host": unit["hostName"],
@@ -253,7 +296,10 @@ def _get_timetable(
         "scheduleDay": 0,
         "week": week,
         "year": year,
+        "schoolYear": school_year,
     }
+
+    # print(timetable_request_data)
 
     resp = session.post(
         "https://web.skola24.se/api/render/timetable",
@@ -264,7 +310,12 @@ def _get_timetable(
         raise RuntimeError("could not get data")
 
     timetable_response_data = resp.json()
+
+    # print(timetable_response_data)
+
     data = timetable_response_data["data"]
+
+    # print(data)
 
     return data["lessonInfo"]
 
@@ -320,6 +371,19 @@ def _to_datetime(year: int, week: int, day: int, time_of_day: str) -> datetime:
     dt = datetime.combine(class_date, class_time)
     tz = pytz.timezone("Europe/Stockholm")
     return tz.localize(dt)
+
+
+def _str_to_datetime(date_string: str) -> datetime:
+    date_format = "%Y-%m-%dT%H:%M:%S"
+    return datetime.strptime(date_string, date_format)
+
+
+def _get_school_year_guid(school_years: list[SchoolYear], year: int, week: int) -> str:
+    date_string = f"{year}-{week}-1"
+    dt = datetime.strptime(date_string, "%Y-%W-%w")
+    return next(
+        sy.guid for sy in school_years if sy.time_start <= dt and sy.time_end >= dt
+    )
 
 
 def _get_texts(texts):
