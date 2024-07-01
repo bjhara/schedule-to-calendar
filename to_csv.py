@@ -32,7 +32,13 @@ def convert_event(event: icalendar.cal.Component) -> TimetableEvent:
     assert isinstance(dtend, icalendar.prop.vDDDTypes)
     assert isinstance(location, icalendar.prop.vText)
 
-    [group, course] = summary.split(sep="-", maxsplit=1)
+    course = ""
+    group = ""
+    parts = summary.split(sep="-", maxsplit=1)
+    if len(parts) == 2:
+        [group, course] = parts
+    else:
+        course = parts[0]
 
     teacher_pattern = r"Teacher:\s*(.*)\s*Room"
     teacher_match = re.search(teacher_pattern, description, flags=re.MULTILINE)
@@ -45,7 +51,12 @@ def convert_event(event: icalendar.cal.Component) -> TimetableEvent:
     time_end = dtend.dt.astimezone(pytz.timezone("Europe/Berlin"))
 
     return TimetableEvent(
-        course, group, teacher_name, str(location), time_start, time_end
+        course.strip(),
+        group.strip(),
+        teacher_name.strip(),
+        str(location),
+        time_start,
+        time_end,
     )
 
 
