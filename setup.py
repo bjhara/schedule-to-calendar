@@ -1,4 +1,4 @@
-from cx_Freeze import setup, Executable
+from cx_Freeze import setup, Executable # type: ignore
 
 executables = [Executable("main.py", target_name="schedule-to-calendar")]
 
