@@ -173,5 +173,11 @@ pyrightconfig.json
 # VS Code
 /.vscode
 
+# ignore zip files
+*.zip
+
 # ignore calendar file output
 *.ics
+
+# ignore processed calendars
+*.csv
